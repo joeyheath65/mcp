@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "mcp-template-stdio": {
+      "command": "npm",
+      "args": ["start"],
+      "cwd": "/absolute/path/to/your/project",
+      "env": {
+        "NODE_ENV": "production"
+      }
+    },
+    "mcp-template-http": {
+      "url": "http://localhost:3001/sse"
+    }
+  }
+}
+

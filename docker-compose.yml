@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # MCP Server with stdio transport (CLI mode)
+  mcp-stdio:
+    build:
+      context: .
+      target: production-stdio
+    image: mcp-template:stdio
+    container_name: mcp-stdio-server
+    stdin_open: true
+    tty: true
+    environment:
+      - LOG_LEVEL=info
+      - TRANSPORT=stdio
+    volumes:
+      # Mount your tools, resources, or data directories as needed
+      - ./src:/app/src
+    restart: unless-stopped
+
+  # MCP Server with HTTP transport (SSE mode)
+  mcp-http:
+    build:
+      context: .
+      target: production-http
+    image: mcp-template:http
+    container_name: mcp-http-server
+    ports:
+      - "3001:3001"
+    environment:
+      - LOG_LEVEL=info
+      - TRANSPORT=http
+      - PORT=3001
+      - HOST=0.0.0.0
+    volumes:
+      # Mount your tools, resources, or data directories as needed
+      - ./src:/app/src
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+

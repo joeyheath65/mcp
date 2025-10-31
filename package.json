@@ -1,0 +1,47 @@
+{
+  "name": "@your-org/mcp-template",
+  "version": "1.0.0",
+  "description": "Customizable foundation template for MCP servers with stdio and HTTP transport support",
+  "author": "Your Name",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "mcp-server": "./bin/stdio.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "bun run src/index.ts",
+    "start:stdio": "bun run src/index.ts --transport stdio",
+    "start:http": "bun run src/index.ts --transport http",
+    "dev": "bun run --watch src/index.ts --transport stdio",
+    "dev:stdio": "bun run --watch src/index.ts --transport stdio",
+    "dev:http": "bun run --watch src/index.ts --transport http",
+    "lint": "eslint src",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "mcp-server",
+    "template",
+    "fastmcp"
+  ],
+  "dependencies": {
+    "fastmcp": "^3.22.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}
+
