@@ -1,0 +1,66 @@
+# Production Docker Compose Configuration
+# Use: docker-compose -f docker-compose.prod.yml up
+
+name: mcp-template-prod
+
+services:
+  mcp-http:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production-http
+    image: mcp-template:production
+    
+    ports:
+      - "3001:3001"
+    
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=warn
+      - TRANSPORT=http
+      - PORT=3001
+      - HOST=0.0.0.0
+      # Add production secrets from environment or secrets manager
+      # - API_KEY=${API_KEY}
+      # - DATABASE_URL=${DATABASE_URL}
+    
+    # No volume mounts in production - use baked-in code
+    # volumes:
+    #   - ./data:/app/data:ro
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 5
+    
+    networks:
+      - mcp-network
+
+networks:
+  mcp-network:
+    driver: bridge
+

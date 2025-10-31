@@ -1,0 +1,77 @@
+# Development Docker Compose Configuration
+# Use: docker-compose -f docker-compose.dev.yml up
+
+name: mcp-template-dev
+
+services:
+  mcp-stdio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production-stdio
+    image: mcp-template:dev-stdio
+    container_name: mcp-stdio-dev
+    
+    stdin_open: true
+    tty: true
+    
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - TRANSPORT=stdio
+      - DEBUG=true
+    
+    # Development: mount all source files for hot reload
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - ./node_modules:/app/node_modules
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  mcp-http:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production-http
+    image: mcp-template:dev-http
+    container_name: mcp-http-dev
+    
+    ports:
+      - "3001:3001"
+    
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - TRANSPORT=http
+      - PORT=3001
+      - HOST=0.0.0.0
+      - DEBUG=true
+    
+    # Development: mount all source files for hot reload
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - ./node_modules:/app/node_modules
+    
+    restart: unless-stopped
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+    
+    networks:
+      - mcp-network
+
+networks:
+  mcp-network:
+    driver: bridge
+

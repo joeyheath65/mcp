@@ -1,17 +1,121 @@
+# ==============================================================================
+# Docker Ignore Configuration
+# ==============================================================================
+
+# Dependencies
 node_modules
+.pnp
+.pnp.js
+bun.lock
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build outputs
 dist
-.git
-.gitignore
+build
+out
+*.tsbuildinfo
+.next
+.nuxt
+
+# Environment files
 .env
 .env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+
+# Git
+.git
+.gitignore
+.gitattributes
+.github
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings
+*.sublime-*
+.c9
+
+# OS
+.DS_Store
+Thumbs.db
 *.log
-README.md
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Testing
+coverage
+.nyc_output
+.jest
+*.test.ts
+*.spec.ts
+test
+tests
+__tests__
+e2e
+cypress
+playwright
+
+# Temporary files
+tmp
+temp
+*.tmp
+*.cache
+.turbo
+.eslintcache
+
+# Documentation (optional - include if you want docs in Docker)
+# Uncomment these if you want to EXCLUDE docs from the image
+# *.md
+# !README.md
+docs
+CHANGELOG.md
+CONTRIBUTING.md
 PLANNING.md
 TASK.md
 ARCHITECTURE.md
-docker-compose.yml
-Dockerfile
-.dockerignore
-.vscode
-.idea
+QUICK_START.md
+LICENSE
+Makefile
 
+# Docker files
+docker-compose.yml
+docker-compose.*.yml
+Dockerfile
+Dockerfile.*
+.dockerignore
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.circleci
+.travis.yml
+Jenkinsfile
+azure-pipelines.yml
+
+# Scripts (optional - usually keep these)
+scripts
+bin
+
+# Misc
+.cursor
+.cache
+*.patch
+.editorconfig
+.prettierrc
+.prettierignore
+eslint.config.js
+tsconfig.json
+jest.config.js

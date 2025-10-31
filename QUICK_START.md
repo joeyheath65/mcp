@@ -26,7 +26,21 @@ bun install
 npm install
 ```
 
-### 3. Start the Server
+### 3. Configure Environment (Optional)
+
+For custom configuration, set up environment variables:
+
+```bash
+# Copy the example file
+cp env.example .env
+
+# Edit with your settings (optional)
+nano .env
+```
+
+See [CONFIGURATION.md](./docs/CONFIGURATION.md) for all available options.
+
+### 4. Start the Server
 
 #### Option A: stdio Mode (for CLI/Cursor)
 
@@ -73,6 +87,7 @@ Can you calculate 15 + 27 using the calculate tool?
 ## Next Steps
 
 - 📖 Read [README.md](./README.md) for detailed documentation
+- ⚙️ Configure your server with [CONFIGURATION.md](./docs/CONFIGURATION.md)
 - 🏗️ See [ARCHITECTURE.md](./ARCHITECTURE.md) for architecture details
 - 🛠️ Customize tools in `src/tools/`
 - 🔧 Add resources in `src/resources/`
@@ -93,12 +108,20 @@ npm run type-check # Type check
 ## Docker Deployment
 
 ```bash
-# Build and run
+# Development mode (with hot reload)
+docker-compose -f docker-compose.dev.yml up
+
+# Production mode
+docker-compose -f docker-compose.prod.yml up
+
+# Default (both transports)
 docker-compose up
 
-# Or just build the image
-docker build -t my-mcp-server .
+# Build specific image
+docker build --target production-http -t my-mcp-server .
 ```
+
+📖 See [docs/DOCKER.md](./docs/DOCKER.md) for complete Docker guide.
 
 ## Need Help?
 

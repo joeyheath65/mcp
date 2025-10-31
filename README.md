@@ -85,34 +85,50 @@ bun run src/index.ts --transport http --port 3001
 
 #### Using Docker Compose
 
-Start both stdio and HTTP servers:
+**Development mode** (with hot reload):
+```bash
+docker-compose -f docker-compose.dev.yml up
+```
 
+**Production mode** (optimized):
+```bash
+docker-compose -f docker-compose.prod.yml up
+```
+
+**Default mode** (both stdio + http):
 ```bash
 docker-compose up
 ```
 
-Start only one service:
-
+**Start specific service:**
 ```bash
 # stdio only
 docker-compose up mcp-stdio
 
 # http only
 docker-compose up mcp-http
+
+# In background
+docker-compose up -d
 ```
 
 #### Using Docker Directly
 
 ```bash
-# Build the image
-docker build -t mcp-template .
+# Build for stdio transport
+docker build --target production-stdio -t mcp-template:stdio .
+
+# Build for http transport
+docker build --target production-http -t mcp-template:http .
 
 # Run stdio mode
-docker run -it mcp-template
+docker run -it mcp-template:stdio
 
-# Run HTTP mode
-docker run -p 3001:3001 mcp-template
+# Run http mode with port mapping
+docker run -d -p 3001:3001 --name mcp-server mcp-template:http
 ```
+
+📖 **See [docs/DOCKER.md](./docs/DOCKER.md) for complete Docker guide.**
 
 ## 🏗️ Architecture
 
@@ -302,12 +318,64 @@ Register in `src/prompts/index.ts`.
 
 ## ⚙️ Configuration
 
-Environment variables (see `.env.example`):
+### Environment Variables
 
+The server is configured using environment variables. Get started quickly:
+
+```bash
+# 1. Copy the example environment file
+cp env.example .env
+
+# 2. Edit .env with your settings
+nano .env  # or your preferred editor
+
+# 3. Start the server (variables load automatically)
+npm start
+```
+
+### Quick Reference
+
+**Server Settings:**
 - `TRANSPORT`: `stdio` or `http` (default: `stdio`)
 - `PORT`: HTTP port (default: `3001`)
 - `HOST`: HTTP host binding (default: `0.0.0.0`)
-- `LOG_LEVEL`: Logging level (default: `info`)
+
+**Logging:**
+- `LOG_LEVEL`: `error`, `warn`, `info`, `debug` (default: `info`)
+- `LOG_FORMAT`: `json` or `text` (default: `text`)
+
+**Security:**
+- `API_KEY`: API authentication key (optional)
+- `JWT_SECRET`: JWT token secret (optional)
+- `ALLOWED_ORIGINS`: Comma-separated CORS origins (optional)
+
+**Feature Flags:**
+- `ENABLE_TOOLS`: Enable tools (default: `true`)
+- `ENABLE_RESOURCES`: Enable resources (default: `true`)
+- `ENABLE_PROMPTS`: Enable prompts (default: `true`)
+
+**Tool Execution:**
+- `PYTHON_PATH`: Python executable path (default: `python3`)
+- `NODE_PATH`: Node.js executable path (default: `node`)
+- `MAX_TOOL_EXECUTION_TIME`: Max execution time in ms (default: `30000`)
+
+### Using Configuration in Code
+
+```typescript
+import { getConfig } from './config';
+
+const config = getConfig();
+console.log(`Running on port ${config.server.port}`);
+```
+
+### Full Documentation
+
+📖 **See [docs/CONFIGURATION.md](./docs/CONFIGURATION.md) for:**
+- Complete environment variable reference
+- Configuration best practices
+- Cloud deployment configuration
+- Example usage patterns
+- Troubleshooting guide
 
 ## 🛠️ Development
 
@@ -336,30 +404,50 @@ npm run dev:http
 
 ```
 .
-├── src/
-│   ├── index.ts           # Entry point
-│   ├── server.ts          # Server core
-│   ├── types.ts           # Type definitions
-│   ├── tools/             # MCP tools
+├── src/                     # Source code
+│   ├── index.ts            # Entry point
+│   ├── server.ts           # Server core
+│   ├── types.ts            # Type definitions
+│   ├── tools/              # MCP tools
 │   │   ├── index.ts
-│   │   ├── node.ts        # Node.js tools
-│   │   └── python.ts      # Python tools
-│   ├── resources/         # MCP resources
-│   │   ├── index.ts
-│   │   └── example.ts
-│   ├── prompts/           # MCP prompts
+│   │   ├── node.ts         # Node.js tools
+│   │   └── python.ts       # Python tools
+│   ├── resources/          # MCP resources
 │   │   ├── index.ts
 │   │   └── example.ts
-│   ├── transport/         # Transport implementations
+│   ├── prompts/            # MCP prompts
+│   │   ├── index.ts
+│   │   └── example.ts
+│   ├── transport/          # Transport implementations
 │   │   ├── stdio.ts
 │   │   └── http.ts
-│   └── utils/             # Utilities
+│   ├── config/             # Configuration management
+│   │   └── index.ts
+│   └── utils/              # Utilities
 │       └── args.ts
-├── bin/
-│   └── stdio.js           # stdio binary entry point
-├── Dockerfile             # Docker configuration
-├── docker-compose.yml     # Docker Compose setup
-└── package.json           # Dependencies and scripts
+├── bin/                     # Binary entry points
+│   └── stdio.js            # stdio binary
+├── docs/                    # Documentation
+│   ├── CONFIGURATION.md    # Config guide
+│   └── DOCKER.md           # Docker guide
+├── Dockerfile               # Docker image
+├── docker-compose.yml       # Docker Compose (default)
+├── docker-compose.dev.yml   # Docker Compose (dev)
+├── docker-compose.prod.yml  # Docker Compose (prod)
+├── .dockerignore           # Docker ignore patterns
+├── env.example             # Environment template
+├── package.json            # Dependencies
+├── tsconfig.json           # TypeScript config
+├── eslint.config.js        # ESLint config
+├── Makefile                # Convenience commands
+├── README.md               # Main documentation
+├── QUICK_START.md          # Quick start guide
+├── ARCHITECTURE.md         # Architecture docs
+├── PLANNING.md             # Planning docs
+├── TASK.md                 # Task tracking
+├── CONTRIBUTING.md         # Contributing guide
+├── CHANGELOG.md            # Change log
+└── LICENSE                 # License
 ```
 
 See [PLANNING.md](./PLANNING.md) for development planning and [ARCHITECTURE.md](./ARCHITECTURE.md) for architecture details.
@@ -392,13 +480,27 @@ Connect from Cursor:
 
 ### Docker Deployment
 
-```bash
-# Build production image
-docker build -t your-org/mcp-server .
+**Production deployment:**
 
-# Run container
-docker run -d -p 3001:3001 --name mcp-server your-org/mcp-server
+```bash
+# Using production compose
+docker-compose -f docker-compose.prod.yml up -d
+
+# Or build and run directly
+docker build --target production-http -t your-org/mcp-server .
+docker run -d -p 3001:3001 \
+  -e LOG_LEVEL=warn \
+  --name mcp-server \
+  your-org/mcp-server
 ```
+
+**Cloud deployment options:**
+- Railway: `railway up`
+- Render: Configure via render.yaml
+- Fly.io: `fly launch`
+- Kubernetes: Use k8s deployment manifests
+
+📖 **See [docs/DOCKER.md](./docs/DOCKER.md) for detailed deployment guide.**
 
 ### Cloud Deployment
 
@@ -407,9 +509,12 @@ Deploy to cloud platforms (AWS, GCP, Azure) using Docker or native binaries.
 ## 📚 Documentation
 
 - **[README.md](./README.md)**: This file - getting started and usage
+- **[QUICK_START.md](./QUICK_START.md)**: Quick start guide
 - **[PLANNING.md](./PLANNING.md)**: Development planning and task management
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)**: Detailed architecture documentation
 - **[TASK.md](./TASK.md)**: Current tasks and progress
+- **[CONFIGURATION.md](./docs/CONFIGURATION.md)**: Configuration guide
+- **[DOCKER.md](./docs/DOCKER.md)**: Complete Docker deployment guide
 
 ## 🤝 Contributing
 

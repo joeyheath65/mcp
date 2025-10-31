@@ -1,44 +1,146 @@
-version: '3.8'
+# Docker Compose v2+ syntax (no version field needed)
+# Modern compose file for MCP Server with stdio and HTTP transports
+
+name: mcp-template
 
 services:
-  # MCP Server with stdio transport (CLI mode)
+  # =============================================================================
+  # MCP Server - stdio Transport (CLI Mode)
+  # =============================================================================
   mcp-stdio:
     build:
       context: .
+      dockerfile: Dockerfile
       target: production-stdio
-    image: mcp-template:stdio
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    image: mcp-template:stdio-latest
     container_name: mcp-stdio-server
+    
+    # Interactive mode for stdio
     stdin_open: true
     tty: true
+    
+    # Environment configuration
     environment:
-      - LOG_LEVEL=info
+      - NODE_ENV=production
+      - LOG_LEVEL=${LOG_LEVEL:-info}
       - TRANSPORT=stdio
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+    
+    # Mount source for development (remove in production)
     volumes:
-      # Mount your tools, resources, or data directories as needed
-      - ./src:/app/src
+      - ./src:/app/src:ro
+      # Add your data directories here
+      # - ./data:/app/data:ro
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    
+    # Restart policy
     restart: unless-stopped
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "src/index.ts"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
 
-  # MCP Server with HTTP transport (SSE mode)
+  # =============================================================================
+  # MCP Server - HTTP Transport (SSE Mode)
+  # =============================================================================
   mcp-http:
     build:
       context: .
+      dockerfile: Dockerfile
       target: production-http
-    image: mcp-template:http
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    image: mcp-template:http-latest
     container_name: mcp-http-server
+    
+    # Network and ports
     ports:
-      - "3001:3001"
+      - "${PORT:-3001}:3001"
+    
+    # Environment configuration
     environment:
-      - LOG_LEVEL=info
+      - NODE_ENV=production
+      - LOG_LEVEL=${LOG_LEVEL:-info}
       - TRANSPORT=http
       - PORT=3001
       - HOST=0.0.0.0
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+      # Add your environment variables here
+      # - API_KEY=${API_KEY}
+      # - DATABASE_URL=${DATABASE_URL}
+    
+    # Mount source for development (remove in production)
     volumes:
-      # Mount your tools, resources, or data directories as needed
-      - ./src:/app/src
+      - ./src:/app/src:ro
+      # Add your data directories here
+      # - ./data:/app/data:ro
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    
+    # Restart policy
     restart: unless-stopped
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Health check
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
       interval: 30s
       timeout: 10s
+      start_period: 10s
       retries: 3
+    
+    # Network configuration
+    networks:
+      - mcp-network
 
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  mcp-network:
+    driver: bridge
+    name: mcp-network
+
+# =============================================================================
+# Volumes (if needed for persistent data)
+# =============================================================================
+volumes:
+  # Example: persistent storage
+  # mcp-data:
+  #   driver: local
