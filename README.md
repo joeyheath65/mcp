@@ -1,537 +1,488 @@
-# MCP Server Foundation Template
+# MCP Server Monorepo
 
-A customizable, production-ready foundation template for building Model Context Protocol (MCP) servers. This template follows MCP best practices and provides a clean, well-structured starting point for creating your own MCP servers.
+A collection of Model Context Protocol (MCP) servers built with FastMCP, providing specialized tools for coding assistance and penetration testing.
 
-## 🌟 Features
+## Overview
 
-- **Dual Transport Support**: Both stdio (CLI) and HTTP (SSE) transport modes
-- **Comprehensive Structure**: Clear separation of tools, resources, and prompts
-- **TypeScript**: Full type safety with modern TypeScript
-- **FastMCP**: Built on the FastMCP framework for simplicity and performance
-- **Docker Ready**: Complete Docker and docker-compose support
-- **Well Documented**: Extensive documentation for usage, customization, and architecture
-- **Extensible**: Easy to add custom tools, resources, and prompts
-- **Production Ready**: Includes error handling, graceful shutdown, and best practices
+This monorepo contains multiple MCP servers, each providing domain-specific tools that can be used by Claude and other AI assistants:
 
-## 📋 Table of Contents
+- **[Coding Server](servers/coding/)**: Code review, testing, and formatting tools
+- **[Pentest Server](servers/pentest/)**: Security assessment and penetration testing tools
 
-- [Quick Start](#quick-start)
-- [Installation](#installation)
-- [Usage](#usage)
-  - [Native Setup](#native-setup)
-  - [Docker Setup](#docker-setup)
-- [Architecture](#architecture)
-- [Customization](#customization)
-  - [Adding Tools](#adding-tools)
-  - [Adding Resources](#adding-resources)
-  - [Adding Prompts](#adding-prompts)
-- [Transport Modes](#transport-modes)
-- [Configuration](#configuration)
-- [Development](#development)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
-- [License](#license)
+## Repository Structure
 
-## 🚀 Quick Start
+```
+mcp/
+├── README.md                    # This file - overview and setup guide
+├── servers/
+│   ├── coding/                  # Coding assistance server
+│   │   ├── server.py           # FastMCP server implementation
+│   │   ├── requirements.txt    # Python dependencies
+│   │   └── README.md           # Server-specific documentation
+│   └── pentest/                 # Penetration testing server
+│       ├── server.py           # FastMCP server implementation
+│       ├── requirements.txt    # Python dependencies
+│       └── README.md           # Server-specific documentation
+└── shared/                      # Shared utilities (placeholder)
+    └── __init__.py
+```
+
+## Quick Start
 
 ### Prerequisites
 
-- **Node.js** 20+ or **Bun** 1.0+
-- **Python 3** (optional, for Python tools)
-- **Docker** (optional, for containerized deployment)
+- Python 3.8 or higher
+- pip (Python package manager)
+- Virtual environment (recommended)
 
 ### Installation
 
-Clone and setup:
+1. Clone or navigate to this repository:
+```bash
+cd mcp
+```
+
+2. Set up each server you want to use:
+
+**For Coding Server:**
+```bash
+cd servers/coding
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+**For Pentest Server:**
+```bash
+cd servers/pentest
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### Testing Servers
+
+Test servers individually using the MCP Inspector:
 
 ```bash
-# Clone this template
-git clone <your-repo-url>
-cd mcp-template
+# Test coding server (stdio)
+npx @modelcontextprotocol/inspector python servers/coding/server.py
 
-# Install dependencies
-bun install  # or npm install, yarn install, pnpm install
+# Test pentest server (stdio)
+npx @modelcontextprotocol/inspector python servers/pentest/server.py
 
-# Make binary executable
-chmod +x bin/stdio.js
+# Test with SSE transport
+python servers/coding/server.py --transport sse --port 8000
+# Then connect inspector to http://localhost:8000/sse
 ```
 
-## 💻 Usage
+## Transport Options
 
-### Native Setup
+Each server supports two transport mechanisms:
 
-#### stdio Transport (CLI Mode)
-
-Start the server in stdio mode for command-line usage:
+### stdio (Standard Input/Output)
+- **Use for:** Claude Desktop, VS Code, local IDE integrations
+- **Pros:** Simple, secure, no network configuration needed
+- **Cons:** One client per server instance
+- **Default:** Yes
 
 ```bash
-npm start
-# or
-bun run src/index.ts --transport stdio
+python servers/coding/server.py
+# or explicitly
+python servers/coding/server.py --transport stdio
 ```
 
-#### HTTP Transport (Web Mode)
-
-Start the server in HTTP mode for web integration:
+### SSE (HTTP with Server-Sent Events)
+- **Use for:** Multiple clients, remote access, service deployment
+- **Pros:** Multiple concurrent clients, network accessible
+- **Cons:** Requires port management, network security considerations
+- **Default:** No
 
 ```bash
-npm run start:http
-# or
-bun run src/index.ts --transport http --port 3001
+# Coding server (port 8000)
+python servers/coding/server.py --transport sse --host 127.0.0.1 --port 8000
+
+# Pentest server (port 8001)
+python servers/pentest/server.py --transport sse --host 127.0.0.1 --port 8001
+
+# Bind to all interfaces (use with caution)
+python servers/coding/server.py --transport sse --host 0.0.0.0 --port 8000
 ```
 
-### Docker Setup
+**Security Note:** When using SSE transport, especially for pentest tools, be cautious about binding to 0.0.0.0 or exposing servers to untrusted networks.
 
-#### Using Docker Compose
+## Configuration
 
-**Development mode** (with hot reload):
-```bash
-docker-compose -f docker-compose.dev.yml up
-```
+### Claude Desktop
 
-**Production mode** (optimized):
-```bash
-docker-compose -f docker-compose.prod.yml up
-```
+To use these servers with Claude Desktop, add them to your configuration file:
 
-**Default mode** (both stdio + http):
-```bash
-docker-compose up
-```
+**macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 
-**Start specific service:**
-```bash
-# stdio only
-docker-compose up mcp-stdio
-
-# http only
-docker-compose up mcp-http
-
-# In background
-docker-compose up -d
-```
-
-#### Using Docker Directly
-
-```bash
-# Build for stdio transport
-docker build --target production-stdio -t mcp-template:stdio .
-
-# Build for http transport
-docker build --target production-http -t mcp-template:http .
-
-# Run stdio mode
-docker run -it mcp-template:stdio
-
-# Run http mode with port mapping
-docker run -d -p 3001:3001 --name mcp-server mcp-template:http
-```
-
-📖 **See [docs/DOCKER.md](./docs/DOCKER.md) for complete Docker guide.**
-
-## 🏗️ Architecture
-
-This template implements the Model Context Protocol (MCP) architecture:
-
-```
-┌─────────────────┐
-│   MCP Client    │  (Cursor, Claude Desktop, etc.)
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│         Transport Layer             │
-│  ┌──────────┐      ┌──────────┐    │
-│  │  stdio   │      │   HTTP   │    │
-│  │ (stdin/  │      │   (SSE)  │    │
-│  │  stdout) │      │          │    │
-│  └──────────┘      └──────────┘    │
-└────────┬─────────────────────┬──────┘
-         │                     │
-         ▼                     ▼
-┌─────────────────────────────────────┐
-│      Data Layer Protocol            │
-│  (JSON-RPC 2.0 over Transport)     │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│         MCP Server Core             │
-│  ┌────────┐  ┌──────────┐  ┌───────┐│
-│  │ Tools  │  │Resources │  │Prompts││
-│  └────────┘  └──────────┘  └───────┘│
-└─────────────────────────────────────┘
-```
-
-**Components:**
-
-1. **Transport Layer**: Handles communication (stdio or HTTP)
-2. **Data Layer**: JSON-RPC 2.0 protocol
-3. **Server Core**: FastMCP framework
-4. **Primitives**: Tools, Resources, Prompts
-
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed architecture documentation.
-
-## 🔧 Customization
-
-### Adding Tools
-
-Tools are functions that the AI can call to perform actions.
-
-#### Node.js/TypeScript Tools
-
-Create a new file `src/tools/your_tool.ts`:
-
-```typescript
-import { FastMcp } from '@fastmcp/core';
-import { z } from 'zod';
-
-export function registerYourTool(mcp: FastMcp): void {
-  mcp.tool({
-    name: 'your_tool_name',
-    description: 'Description of what your tool does',
-    parameters: z.object({
-      param1: z.string().describe('First parameter'),
-      param2: z.number().optional().describe('Optional parameter'),
-    }),
-    handler: async ({ param1, param2 }) => {
-      // Your tool logic here
-      return {
-        result: `Processed ${param1}`,
-      };
+#### stdio Transport (Recommended for Desktop)
+```json
+{
+  "mcpServers": {
+    "coding": {
+      "command": "python",
+      "args": ["/absolute/path/to/mcp/servers/coding/server.py"],
+      "env": {}
     },
-  });
+    "pentest": {
+      "command": "python",
+      "args": ["/absolute/path/to/mcp/servers/pentest/server.py"],
+      "env": {}
+    }
+  }
 }
 ```
 
-Then register it in `src/tools/index.ts`:
+#### SSE Transport (For Shared Services)
+If running servers separately as services:
 
-```typescript
-import { registerYourTool } from './your_tool';
-
-export function registerTools(mcp: FastMcp): void {
-  registerNodeTools(mcp);
-  registerPythonTools(mcp);
-  registerYourTool(mcp);  // Add this line
-}
-```
-
-#### Python Tools
-
-For Python tools, you can:
-
-1. **Execute Python scripts**: Use child_process to run Python scripts
-2. **Create a Python MCP proxy**: Separate MCP server for Python tools
-3. **Use Python execution libraries**: Use libraries like `python-shell`
-
-See `src/tools/python.ts` for implementation patterns.
-
-### Adding Resources
-
-Resources are read-only data sources that the AI can access.
-
-Create a resource in `src/resources/your_resource.ts`:
-
-```typescript
-import { FastMcp } from '@fastmcp/core';
-
-export function registerYourResource(mcp: FastMcp): void {
-  mcp.resource({
-    uri: 'your_scheme://path/{param}',
-    name: 'Your Resource Name',
-    description: 'Description of your resource',
-    handler: async ({ param }: { param: string }) => {
-      // Load and return your resource data
-      return {
-        contents: [
-          {
-            uri: `your_scheme://path/${param}`,
-            mimeType: 'application/json',
-            text: JSON.stringify({ data: 'your data' }, null, 2),
-          },
-        ],
-      };
+```json
+{
+  "mcpServers": {
+    "coding": {
+      "url": "http://localhost:8000/sse"
     },
-  });
+    "pentest": {
+      "url": "http://localhost:8001/sse"
+    }
+  }
 }
 ```
 
-Register in `src/resources/index.ts`.
+**Important:**
+- Use absolute paths, not relative paths (stdio)
+- On Windows, use double backslashes: `C:\\Users\\...\\mcp\\servers\\coding\\server.py`
+- For SSE, ensure servers are running before starting Claude Desktop
+- Restart Claude Desktop after configuration changes
 
-### Adding Prompts
+### VS Code with Claude Extension
 
-Prompts are template-based messages for the AI.
+If using VS Code or Cursor with Claude Code, add to your settings:
 
-Create a prompt in `src/prompts/your_prompt.ts`:
+1. Open Command Palette (Cmd+Shift+P / Ctrl+Shift+P)
+2. Search for "Preferences: Open Settings (JSON)"
+3. Add MCP server configuration:
 
-```typescript
-import { FastMcp } from '@fastmcp/core';
-
-export function registerYourPrompt(mcp: FastMcp): void {
-  mcp.prompt({
-    name: 'your_prompt_name',
-    description: 'Description of your prompt',
-    arguments: [
-      {
-        name: 'arg1',
-        description: 'First argument',
-        required: true,
-      },
-    ],
-    handler: async ({ arg1 }) => {
-      return {
-        messages: [
-          {
-            role: 'user',
-            content: {
-              type: 'text',
-              text: `Your prompt template with ${arg1}`,
-            },
-          },
-        ],
-      };
+#### stdio Transport
+```json
+{
+  "mcp.servers": {
+    "coding": {
+      "command": "python",
+      "args": ["/absolute/path/to/mcp/servers/coding/server.py"]
     },
-  });
+    "pentest": {
+      "command": "python",
+      "args": ["/absolute/path/to/mcp/servers/pentest/server.py"]
+    }
+  }
 }
 ```
 
-Register in `src/prompts/index.ts`.
+#### SSE Transport
+```json
+{
+  "mcp.servers": {
+    "coding": {
+      "url": "http://localhost:8000/sse"
+    },
+    "pentest": {
+      "url": "http://localhost:8001/sse"
+    }
+  }
+}
+```
 
-## 🔌 Transport Modes
+### Cline (VS Code Extension)
 
-### stdio Transport
+For Cline in VS Code:
 
-- **Use Case**: CLI tools, local development, Cursor integration
-- **Communication**: stdin/stdout
-- **Network**: None (local process communication)
-- **Access**: Single user, local only
-- **Example**: AI assistant in terminal
+1. Open Cline settings
+2. Navigate to MCP Servers section
+3. Add each server:
+   - **stdio**: Command: `python`, Args: `/absolute/path/to/mcp/servers/[server-name]/server.py`
+   - **SSE**: URL: `http://localhost:8000/sse` (or appropriate port)
 
-### HTTP Transport
+### Continue.dev
 
-- **Use Case**: Web apps, remote access, team sharing
-- **Communication**: Server-Sent Events (SSE)
-- **Network**: TCP/IP over HTTP
-- **Access**: Multi-user, remote capable
-- **Example**: Shared AI tools for team
+For Continue.dev, edit `~/.continue/config.json`:
 
-## ⚙️ Configuration
+#### stdio Transport
+```json
+{
+  "mcpServers": {
+    "coding": {
+      "command": "python",
+      "args": ["/absolute/path/to/mcp/servers/coding/server.py"]
+    },
+    "pentest": {
+      "command": "python",
+      "args": ["/absolute/path/to/mcp/servers/pentest/server.py"]
+    }
+  }
+}
+```
 
-### Environment Variables
+#### SSE Transport
+```json
+{
+  "mcpServers": {
+    "coding": {
+      "url": "http://localhost:8000/sse"
+    },
+    "pentest": {
+      "url": "http://localhost:8001/sse"
+    }
+  }
+}
+```
 
-The server is configured using environment variables. Get started quickly:
+### Other Platforms
+
+Most MCP-compatible platforms support both transports:
+
+#### stdio Pattern
+```json
+{
+  "server-name": {
+    "command": "python",
+    "args": ["path/to/server.py"],
+    "env": {}
+  }
+}
+```
+
+#### SSE Pattern
+```json
+{
+  "server-name": {
+    "url": "http://localhost:PORT/sse"
+  }
+}
+```
+
+## Running Servers as Services
+
+When using SSE transport, you may want to run servers as persistent background services.
+
+### Using screen/tmux (Quick Method)
 
 ```bash
-# 1. Copy the example environment file
-cp env.example .env
+# Start in screen
+screen -S mcp-coding
+python servers/coding/server.py --transport sse --port 8000
+# Detach: Ctrl+A, D
 
-# 2. Edit .env with your settings
-nano .env  # or your preferred editor
-
-# 3. Start the server (variables load automatically)
-npm start
+# Start in tmux
+tmux new -s mcp-coding
+python servers/coding/server.py --transport sse --port 8000
+# Detach: Ctrl+B, D
 ```
 
-### Quick Reference
-
-**Server Settings:**
-- `TRANSPORT`: `stdio` or `http` (default: `stdio`)
-- `PORT`: HTTP port (default: `3001`)
-- `HOST`: HTTP host binding (default: `0.0.0.0`)
-
-**Logging:**
-- `LOG_LEVEL`: `error`, `warn`, `info`, `debug` (default: `info`)
-- `LOG_FORMAT`: `json` or `text` (default: `text`)
-
-**Security:**
-- `API_KEY`: API authentication key (optional)
-- `JWT_SECRET`: JWT token secret (optional)
-- `ALLOWED_ORIGINS`: Comma-separated CORS origins (optional)
-
-**Feature Flags:**
-- `ENABLE_TOOLS`: Enable tools (default: `true`)
-- `ENABLE_RESOURCES`: Enable resources (default: `true`)
-- `ENABLE_PROMPTS`: Enable prompts (default: `true`)
-
-**Tool Execution:**
-- `PYTHON_PATH`: Python executable path (default: `python3`)
-- `NODE_PATH`: Node.js executable path (default: `node`)
-- `MAX_TOOL_EXECUTION_TIME`: Max execution time in ms (default: `30000`)
-
-### Using Configuration in Code
-
-```typescript
-import { getConfig } from './config';
-
-const config = getConfig();
-console.log(`Running on port ${config.server.port}`);
-```
-
-### Full Documentation
-
-📖 **See [docs/CONFIGURATION.md](./docs/CONFIGURATION.md) for:**
-- Complete environment variable reference
-- Configuration best practices
-- Cloud deployment configuration
-- Example usage patterns
-- Troubleshooting guide
-
-## 🛠️ Development
-
-### Development Mode
-
-Auto-reload on file changes:
+### Using nohup (Simple Background)
 
 ```bash
-# stdio dev mode
-npm run dev
+cd servers/coding
+nohup python server.py --transport sse --port 8000 > coding.log 2>&1 &
 
-# http dev mode
-npm run dev:http
+cd ../pentest
+nohup python server.py --transport sse --port 8001 > pentest.log 2>&1 &
 ```
 
-### Scripts
+### Using systemd (Linux)
 
-- `npm start` - Start in stdio mode
-- `npm run start:http` - Start in HTTP mode
-- `npm run dev` - Development mode with auto-reload
-- `npm run build` - Build TypeScript
-- `npm run lint` - Run ESLint
-- `npm run type-check` - Type checking without emit
+Create service files in `/etc/systemd/system/`:
 
-### Project Structure
+**mcp-coding.service:**
+```ini
+[Unit]
+Description=MCP Coding Server
+After=network.target
 
-```
-.
-├── src/                     # Source code
-│   ├── index.ts            # Entry point
-│   ├── server.ts           # Server core
-│   ├── types.ts            # Type definitions
-│   ├── tools/              # MCP tools
-│   │   ├── index.ts
-│   │   ├── node.ts         # Node.js tools
-│   │   └── python.ts       # Python tools
-│   ├── resources/          # MCP resources
-│   │   ├── index.ts
-│   │   └── example.ts
-│   ├── prompts/            # MCP prompts
-│   │   ├── index.ts
-│   │   └── example.ts
-│   ├── transport/          # Transport implementations
-│   │   ├── stdio.ts
-│   │   └── http.ts
-│   ├── config/             # Configuration management
-│   │   └── index.ts
-│   └── utils/              # Utilities
-│       └── args.ts
-├── bin/                     # Binary entry points
-│   └── stdio.js            # stdio binary
-├── docs/                    # Documentation
-│   ├── CONFIGURATION.md    # Config guide
-│   └── DOCKER.md           # Docker guide
-├── Dockerfile               # Docker image
-├── docker-compose.yml       # Docker Compose (default)
-├── docker-compose.dev.yml   # Docker Compose (dev)
-├── docker-compose.prod.yml  # Docker Compose (prod)
-├── .dockerignore           # Docker ignore patterns
-├── env.example             # Environment template
-├── package.json            # Dependencies
-├── tsconfig.json           # TypeScript config
-├── eslint.config.js        # ESLint config
-├── Makefile                # Convenience commands
-├── README.md               # Main documentation
-├── QUICK_START.md          # Quick start guide
-├── ARCHITECTURE.md         # Architecture docs
-├── PLANNING.md             # Planning docs
-├── TASK.md                 # Task tracking
-├── CONTRIBUTING.md         # Contributing guide
-├── CHANGELOG.md            # Change log
-└── LICENSE                 # License
+[Service]
+Type=simple
+User=yourusername
+WorkingDirectory=/absolute/path/to/mcp/servers/coding
+ExecStart=/usr/bin/python server.py --transport sse --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
 ```
 
-See [PLANNING.md](./PLANNING.md) for development planning and [ARCHITECTURE.md](./ARCHITECTURE.md) for architecture details.
-
-## 🧪 Testing
-
-### Local Testing
-
-Test your MCP server with FastMCP CLI:
-
+Enable and start:
 ```bash
-# Test in development mode
-npx @fastmcp/core dev src/index.ts
-
-# Inspect server capabilities
-npx @fastmcp/core inspect src/index.ts
+sudo systemctl daemon-reload
+sudo systemctl enable mcp-coding
+sudo systemctl start mcp-coding
+sudo systemctl status mcp-coding
 ```
 
-### Integration Testing
+### Using Docker (Advanced)
 
-Connect from Cursor:
+Create a `Dockerfile` in each server directory:
 
-1. Open Cursor Settings
-2. Features → MCP Servers → Add new server
-3. Configure:
-   - **stdio**: `command: npm start`
-   - **http**: `url: http://localhost:3001/sse`
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY server.py .
+CMD ["python", "server.py", "--transport", "sse", "--host", "0.0.0.0", "--port", "8000"]
+```
 
-## 🚢 Deployment
-
-### Docker Deployment
-
-**Production deployment:**
-
+Build and run:
 ```bash
-# Using production compose
-docker-compose -f docker-compose.prod.yml up -d
-
-# Or build and run directly
-docker build --target production-http -t your-org/mcp-server .
-docker run -d -p 3001:3001 \
-  -e LOG_LEVEL=warn \
-  --name mcp-server \
-  your-org/mcp-server
+docker build -t mcp-coding ./servers/coding
+docker run -d -p 8000:8000 --name mcp-coding mcp-coding
 ```
 
-**Cloud deployment options:**
-- Railway: `railway up`
-- Render: Configure via render.yaml
-- Fly.io: `fly launch`
-- Kubernetes: Use k8s deployment manifests
+## Server Documentation
 
-📖 **See [docs/DOCKER.md](./docs/DOCKER.md) for detailed deployment guide.**
+Each server has detailed documentation in its respective directory:
 
-### Cloud Deployment
+- [Coding Server Documentation](servers/coding/README.md)
+  - code_review: Automated code review with multiple review types
+  - run_tests: Execute tests with pytest, unittest, or nose
+  - format_code: Format code with black, autopep8, or isort
 
-Deploy to cloud platforms (AWS, GCP, Azure) using Docker or native binaries.
+- [Pentest Server Documentation](servers/pentest/README.md)
+  - port_scan: TCP port scanning and service detection
+  - enum_subdomains: Subdomain enumeration via DNS
+  - check_cve: CVE database queries (mock implementation)
 
-## 📚 Documentation
+## Development
 
-- **[README.md](./README.md)**: This file - getting started and usage
-- **[QUICK_START.md](./QUICK_START.md)**: Quick start guide
-- **[PLANNING.md](./PLANNING.md)**: Development planning and task management
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)**: Detailed architecture documentation
-- **[TASK.md](./TASK.md)**: Current tasks and progress
-- **[CONFIGURATION.md](./docs/CONFIGURATION.md)**: Configuration guide
-- **[DOCKER.md](./docs/DOCKER.md)**: Complete Docker deployment guide
+### Adding New Servers
 
-## 🤝 Contributing
+1. Create a new directory under `servers/`:
+```bash
+mkdir servers/new-server
+cd servers/new-server
+```
 
-Contributions welcome! See the main project for contribution guidelines.
+2. Create the server structure:
+```bash
+touch server.py requirements.txt README.md
+```
 
-## 📄 License
+3. Implement your server using FastMCP:
+```python
+from fastmcp import FastMCP
 
-MIT License - see LICENSE file for details
+mcp = FastMCP("server-name")
 
-## 🔗 Resources
+@mcp.tool()
+def example_tool(param: str) -> str:
+    """Tool description"""
+    return f"Result: {param}"
 
-- [MCP Documentation](https://modelcontextprotocol.io)
-- [FastMCP GitHub](https://github.com/fastmcp)
-- [MCP Specification](https://spec.modelcontextprotocol.io)
+if __name__ == "__main__":
+    mcp.run()
+```
 
-## 🙏 Acknowledgments
+4. Document your tools in the README.md
+5. Update this main README with the new server
 
-- Built on [FastMCP](https://github.com/fastmcp/fastmcp)
-- Model Context Protocol by Anthropic
-- Template inspired by [mcpdotdirect/template-mcp-server](https://github.com/mcpdotdirect/template-mcp-server)
+### Adding Tools to Existing Servers
+
+1. Navigate to the server directory
+2. Edit `server.py`
+3. Add a new function decorated with `@mcp.tool()`
+4. Include proper type hints and docstrings
+5. Update the server's README.md
+6. Test with MCP Inspector
+
+### Shared Utilities
+
+The `shared/` directory is available for common code used across servers:
+
+```python
+# In your server.py
+import sys
+sys.path.append('../..')
+from shared import your_utility
+```
+
+## Troubleshooting
+
+### Server Not Appearing
+
+1. Check that the path in your config is absolute and correct
+2. Verify Python is in your PATH: `python --version`
+3. Test the server standalone: `python servers/coding/server.py`
+4. Check for syntax errors in the configuration JSON
+
+### Import Errors
+
+1. Ensure you activated the virtual environment
+2. Install dependencies: `pip install -r requirements.txt`
+3. Check Python version: `python --version` (3.8+ required)
+
+### Permission Errors
+
+1. On Unix systems, make server.py executable: `chmod +x server.py`
+2. Ensure you have read permissions on the server directory
+
+### Tool Execution Errors
+
+1. Check tool-specific dependencies (pytest, black, etc.)
+2. Review error messages in Claude's output
+3. Test tools standalone using MCP Inspector
+4. Check file paths are accessible
+
+## Resources
+
+- [FastMCP Documentation](https://github.com/jlowin/fastmcp)
+- [MCP Specification](https://modelcontextprotocol.io/)
+- [Claude Desktop](https://claude.ai/desktop)
+- [MCP Inspector](https://github.com/modelcontextprotocol/inspector)
+
+## Security Notes
+
+### Coding Server
+- Code review tools read files on your system
+- Test execution runs code with your user permissions
+- Code formatters modify files in-place
+
+### Pentest Server
+- Port scanning may trigger IDS/IPS alerts
+- Only use on authorized systems
+- Subdomain enumeration generates DNS traffic
+- Always obtain proper authorization before testing
+
+## Contributing
+
+To contribute to this monorepo:
+
+1. Test your changes with MCP Inspector
+2. Update relevant README files
+3. Follow existing code style and patterns
+4. Add proper error handling and docstrings
+5. Document security considerations
+
+## License
+
+[Add your license here]
+
+## Support
+
+For issues or questions:
+- Check server-specific README files
+- Review troubleshooting section above
+- Test with MCP Inspector for debugging
+- Check FastMCP documentation
+
+## Version History
+
+### 0.1.0 (Initial Release)
+- Coding server with code_review, run_tests, format_code tools
+- Pentest server with port_scan, enum_subdomains, check_cve tools
+- Basic monorepo structure
+- Documentation for all servers
